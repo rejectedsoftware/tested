@@ -1,0 +1,7 @@
+{
+	"name": "tested-example",
+	"description": "A sample application with some failing unit tests.",
+	"dependencies": {
+		"tested": {"version": "~master", "path": ".."}
+	}
+}
