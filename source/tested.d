@@ -287,9 +287,11 @@ private class TestRunner {
 		auto duration = cast(Duration)m_stopWatch.peek();
 
 		auto stats = InstrumentStats.instrument();
-		writeInstrumentStats(m_results, duration, m_baseStats, stats);
-
-		synchronized (m_mutex) m_running = false;
+		synchronized (m_mutex) {
+			writeInstrumentStats(m_results, duration, m_baseStats, stats);
+			m_running = false;
+		}
+			
 		m_results.endTest(duration, error);
 		return error is null;
 	}
