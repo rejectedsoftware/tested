@@ -2,6 +2,7 @@
 	"name": "tested",
 	"description": "Unit test runner with structured JSON output of results and resource usage.",
 	"copyright": "Copyright © 2013, rejectedsoftware e.K.",
+	"license": "MIT",
 	"authors": ["Sönke Ludwig"],
 	"targetType": "library"
 }
