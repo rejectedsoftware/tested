@@ -1,6 +1,6 @@
 {
 	"name": "tested",
-	"description": "Testing library with structured JSON output of results and resource usage.",
+	"description": "Unit test runner with structured JSON output of results and resource usage.",
 	"copyright": "Copyright © 2013, rejectedsoftware e.K.",
 	"authors": ["Sönke Ludwig"],
 	"targetType": "library"
