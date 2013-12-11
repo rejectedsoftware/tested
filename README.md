@@ -9,14 +9,14 @@ To use it, simply disable D's built-in unit test runner and call `runUnitTests`.
 version (unittest) {
 	shared static this()
 	{
+		// disable built-in unit test runner
 		import core.runtime;
 		Runtime.moduleUnitTester = () => true;
-		runUnitTests!app(new JsonTestResultWriter("results.json"));
-		assert(runUnitTests!app(new ConsoleTestResultWriter), "Unit tests failed.");
 	}
 
 	void main()
 	{
+		enforce(runUnitTests!app(new JsonTestResultWriter("results.json")), "Unit tests failed.");
 	}
 }
 ```
