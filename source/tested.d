@@ -233,7 +233,7 @@ private class TestRunner {
 	{
 		bool ret = true;
 
-		static if (composite.stringof.startsWith("module ") || isAggregateType!(typeof(composite))) {
+		static if (composite.stringof.startsWith("module ") || (is(typeof(composite)) && isAggregateType!(typeof(composite)))) {
 			foreach (test; __traits(getUnitTests, composite)) {
 				if (!runUnitTest!test())
 					ret = false;
