@@ -13,14 +13,14 @@ import core.time;
 import core.thread;
 import std.datetime : StopWatch;
 import std.string : startsWith;
-import std.traits : isAggregateType, fullyQualifiedName;
+import std.traits;
 import std.typetuple : TypeTuple;
 
 
 /**
 	Runs all unit tests contained in the given symbol recursively.
 
-	composite can be a package, a module or a composite type.
+	COMPOSITES can be a list of modules or composite types.
 
 	Example:
 		This example assumes that the application has all of its sources in
@@ -33,16 +33,16 @@ import std.typetuple : TypeTuple;
 
 		void main()
 		{
-			version(unittest) runUnitTests!mypackage(new ConsoleResultWriter);
+			version(unittest) runUnitTests!(mypackage.application)(new ConsoleResultWriter);
 			else runApplication;
 		}
 		---
 */
-bool runUnitTests(alias composite)(TestResultWriter results)
+bool runUnitTests(COMPOSITES...)(TestResultWriter results)
 {
 	assert(!g_runner, "Running multiple unit tests concurrently is not supported.");
 	g_runner = new TestRunner(results);
-	auto ret = g_runner.runUnitTests!composite();
+	auto ret = g_runner.runUnitTests!COMPOSITES();
 	g_runner = null;
 	return ret;
 }
@@ -183,7 +183,6 @@ class JsonTestResultWriter : TestResultWriter {
 	}
 }
 
-
 private class TestRunner {
 	private {
 		Mutex m_mutex;
@@ -201,7 +200,7 @@ private class TestRunner {
 		m_condition = new Condition(m_mutex);
 	}
 
-	bool runUnitTests(alias composite)()
+	bool runUnitTests(COMPOSITES...)()
 	{
 		InstrumentStats basestats;
 		m_running = false;
@@ -213,7 +212,10 @@ private class TestRunner {
 		//instrumentthr.priority = Thread.PRIORITY_DEFAULT + 1;
 		instrumentthr.start();
 
-		auto ret = runUnitTestsImpl!composite();
+		auto ret = true;
+		foreach(comp; COMPOSITES)
+			if (!runUnitTestsImpl!comp())
+				ret = false;
 		m_results.finalize();
 
 		synchronized (m_mutex) m_quit = true;
@@ -229,26 +231,32 @@ private class TestRunner {
 		synchronized (m_mutex) m_results.addScalar(ts, name, value);
 	}
 
-	private bool runUnitTestsImpl(alias composite)()
+	private bool runUnitTestsImpl(COMPOSITE...)()
+		if (COMPOSITE.length == 1 && isUnitTestContainer!COMPOSITE)
 	{
 		bool ret = true;
+		//pragma(msg, fullyQualifiedName!COMPOSITE);
 
-		static if (composite.stringof.startsWith("module ") || (is(typeof(composite)) && isAggregateType!(typeof(composite)))) {
-			foreach (test; __traits(getUnitTests, composite)) {
-				if (!runUnitTest!test())
-					ret = false;
-			}
+		foreach (test; __traits(getUnitTests, COMPOSITE)) {
+			if (!runUnitTest!test())
+				ret = false;
 		}
 
-		// if composite has members, descent recursively
-		static if (__traits(compiles, { auto mems = __traits(allMembers, composite); }))
-			foreach (M; __traits(allMembers, composite)) {
-				// stop on system types/modules and private members
-				static if (!isSystemModule!(composite, M))
-					static if (__traits(compiles, { auto tup = TypeTuple!(__traits(getMember, composite, M)); }))
-						if (!runUnitTestsImpl!(__traits(getMember, composite, M))())
-							ret = false;
+		// if COMPOSITE has members, descent recursively
+		static if (isUnitTestContainer!COMPOSITE) {
+			foreach (M; __traits(allMembers, COMPOSITE)) {
+				static if (
+					__traits(compiles, __traits(getMember, COMPOSITE, M)) &&
+					isSingleField!(__traits(getMember, COMPOSITE, M)) &&
+					isUnitTestContainer!(__traits(getMember, COMPOSITE, M)) &&
+					!isModule!(__traits(getMember, COMPOSITE, M))
+					)
+				{
+					if (!runUnitTestsImpl!(__traits(getMember, COMPOSITE, M))())
+						ret = false;
+				}
 			}
+		}
 
 		return ret;
 	}
@@ -361,15 +369,75 @@ private void writeInstrumentStats(TestResultWriter results, Duration timestamp, 
 	results.addScalar(timestamp, "gcFreeListSize", stats.gcFreeListSize - base_stats.gcFreeListSize);
 }
 
-private bool isSystemModule(alias composite, string mem)()
+private template isUnitTestContainer(DECL...)
+	if (DECL.length == 1)
 {
-	return isSystemModule(fullyQualifiedName!(__traits(getMember, composite, mem)));
+	static if (!isAccessible!DECL) {
+		enum isUnitTestContainer = false;
+	} else static if (is(FunctionTypeOf!(DECL[0]))) {
+		enum isUnitTestContainer = false;
+	} else static if (is(DECL[0]) && !isAggregateType!(DECL[0])) {
+		enum isUnitTestContainer = false;
+	} else static if (isPackage!(DECL[0])) {
+		enum isUnitTestContainer = false;
+	} else static if (isModule!(DECL[0])) {
+		enum isUnitTestContainer = DECL[0].stringof != "module object";
+	} else static if (!__traits(compiles, fullyQualifiedName!(DECL[0]))) {
+		enum isUnitTestContainer = false;
+	} else static if (!is(typeof(__traits(allMembers, DECL[0])))) {
+		enum isUnitTestContainer = false;
+	} else {
+		enum isUnitTestContainer = true;
+	}
 }
 
-private bool isSystemModule()(string qualified_name)
+private template isModule(DECL...)
+	if (DECL.length == 1)
 {
-	return qualified_name.startsWith("std.") ||
-		qualified_name.startsWith("core.") ||
-		qualified_name.startsWith("object.") ||
-		qualified_name == "object";
+	static if (is(DECL[0])) enum isModule = false;
+	else static if (!is(typeof(DECL[0]) == void)) enum isModule = false;
+	else static if (!is(typeof(DECL[0].stringof))) enum isModule = false;
+	else static if (is(FunctionTypeOf!(DECL[0]))) enum isModule = false;
+	else enum isModule = DECL[0].stringof.startsWith("module ");
+}
+
+private template isPackage(DECL...)
+	if (DECL.length == 1)
+{
+	static if (is(DECL[0])) enum isPackage = false;
+	else static if (!is(typeof(DECL[0]) == void)) enum isPackage = false;
+	else static if (!is(typeof(DECL[0].stringof))) enum isPackage = false;
+	else static if (is(FunctionTypeOf!(DECL[0]))) enum isPackage = false;
+	else enum isPackage = DECL[0].stringof.startsWith("package ");
+}
+
+private template isAccessible(DECL...)
+	if (DECL.length == 1)
+{
+	enum isAccessible = __traits(compiles, testTempl!(DECL[0])());
+}
+
+private template isSingleField(DECL...)
+{
+	enum isSingleField = DECL.length == 1;
+}
+
+static assert(!is(tested));
+static assert(isModule!tested);
+static assert(!isPackage!tested);
+static assert(isPackage!std);
+static assert(__traits(compiles, testTempl!GCStats()));
+static assert(__traits(compiles, testTempl!(immutable(ubyte)[])));
+static assert(isAccessible!GCStats);
+static assert(isUnitTestContainer!GCStats);
+static assert(isUnitTestContainer!tested);
+
+private void testTempl(X...)()
+	if (X.length == 1)
+{
+	static if (is(X[0])) {
+		auto x = X[0].init;
+	} else {
+		auto x = X[0].stringof;
+	}
 }
