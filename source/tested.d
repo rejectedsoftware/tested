@@ -395,7 +395,7 @@ private template isModule(DECL...)
 	if (DECL.length == 1)
 {
 	static if (is(DECL[0])) enum isModule = false;
-	else static if (!is(typeof(DECL[0]) == void)) enum isModule = false;
+	else static if (is(typeof(DECL[0])) && !is(typeof(DECL[0]) == void)) enum isModule = false;
 	else static if (!is(typeof(DECL[0].stringof))) enum isModule = false;
 	else static if (is(FunctionTypeOf!(DECL[0]))) enum isModule = false;
 	else enum isModule = DECL[0].stringof.startsWith("module ");
@@ -405,7 +405,7 @@ private template isPackage(DECL...)
 	if (DECL.length == 1)
 {
 	static if (is(DECL[0])) enum isPackage = false;
-	else static if (!is(typeof(DECL[0]) == void)) enum isPackage = false;
+	else static if (is(typeof(DECL[0])) && !is(typeof(DECL[0]) == void)) enum isPackage = false;
 	else static if (!is(typeof(DECL[0].stringof))) enum isPackage = false;
 	else static if (is(FunctionTypeOf!(DECL[0]))) enum isPackage = false;
 	else enum isPackage = DECL[0].stringof.startsWith("package ");
