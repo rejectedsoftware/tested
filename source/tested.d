@@ -121,7 +121,9 @@ class ConsoleTestResultWriter : TestResultWriter {
 	void endTest(Duration timestamp, Throwable error)
 	{
 		if (error) {
+			version(Posix) write("\033[1;31m");
 			writefln(`FAIL "%s" (%s) after %.6f s: %s`, m_name, m_qualifiedName, fracSecs(timestamp), error.msg);
+			version(Posix) write("\033[0m");
 			m_failCount++;
 		} else {
 			writefln(`PASS "%s" (%s) after %.6f s`, m_name, m_qualifiedName, fracSecs(timestamp));
