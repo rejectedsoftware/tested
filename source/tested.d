@@ -74,7 +74,7 @@ void instrument(string name, double value)
 		unittest {
 			// unit test code
 		}
-		---	
+		---
 */
 struct name { string name; }
 
@@ -95,6 +95,8 @@ interface TestResultWriter {
 */
 class ConsoleTestResultWriter : TestResultWriter {
 	import std.stdio;
+	import rlutil.d;
+
 	private {
 		size_t m_failCount, m_successCount;
 		string m_name, m_qualifiedName;
@@ -121,9 +123,10 @@ class ConsoleTestResultWriter : TestResultWriter {
 	void endTest(Duration timestamp, Throwable error)
 	{
 		if (error) {
-			version(Posix) write("\033[1;31m");
+			setColor(RED);
 			writefln(`FAIL "%s" (%s) after %.6f s: %s`, m_name, m_qualifiedName, fracSecs(timestamp), error.msg);
-			version(Posix) write("\033[0m");
+			setColor(GREY);
+
 			m_failCount++;
 		} else {
 			writefln(`PASS "%s" (%s) after %.6f s`, m_name, m_qualifiedName, fracSecs(timestamp));
@@ -138,7 +141,7 @@ class ConsoleTestResultWriter : TestResultWriter {
 }
 
 /**
-	Outputs test results and instrumentation values 
+	Outputs test results and instrumentation values
 */
 class JsonTestResultWriter : TestResultWriter {
 	import std.stdio;
@@ -301,7 +304,7 @@ private class TestRunner {
 			writeInstrumentStats(m_results, duration, m_baseStats, stats);
 			m_running = false;
 		}
-			
+
 		m_results.endTest(duration, error);
 		return error is null;
 	}
