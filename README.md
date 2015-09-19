@@ -45,6 +45,28 @@ FAIL "limited int array" (app.__unittestL56_4) after 1.741268 s: Too many items
 
 FINAL RESULT: FAILED
 core.exception.AssertError@source\app.d(20): Unit tests failed.
+
+
+app
+  OK arithmetic (0.000001 s)
+  1) arithmetic2 (0.000057 s)
+  OK int array (14.419688 s)
+  2) limited int array (11.700819 s)
+
+
+1) core.exception.AssertError@source\app.d(40): unittest failure
+----------------
+.....
+
+2) core.exception.AssertError@source\app.d(65): Too many items
+----------------
+.....
+
+  2 passing
+  2 failing
+
+
+core.exception.AssertError@source\app.d(20): Unit tests failed.
 ```
 
 It will also generate a results.json file with detailed data, similar to this (shortened):
