@@ -7,6 +7,6 @@
 	"targetType": "library",
 
 	"dependencies": {
-		"drlutil": "~>1.0.0"
+		"consoled": "~>1.0.0"
 	}
 }
