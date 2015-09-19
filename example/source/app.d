@@ -17,7 +17,8 @@ shared static this()
 		import core.runtime;
 		Runtime.moduleUnitTester = () => true;
 		runUnitTests!app(new JsonTestResultWriter("results.json"));
-		assert(runUnitTests!app(new ConsoleTestResultWriter), "Unit tests failed.");
+		runUnitTests!app(new ConsoleTestResultWriter);
+		assert(runUnitTests!app(new PrettyConsoleTestResultWriter), "Unit tests failed.");
 	}
 }
 
