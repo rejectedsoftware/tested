@@ -74,7 +74,7 @@ void instrument(string name, double value)
 		unittest {
 			// unit test code
 		}
-		---	
+		---
 */
 struct name { string name; }
 
@@ -95,6 +95,8 @@ interface TestResultWriter {
 */
 class ConsoleTestResultWriter : TestResultWriter {
 	import std.stdio;
+	import consoled;
+
 	private {
 		size_t m_failCount, m_successCount;
 		string m_name, m_qualifiedName;
@@ -121,9 +123,12 @@ class ConsoleTestResultWriter : TestResultWriter {
 	void endTest(Duration timestamp, Throwable error)
 	{
 		if (error) {
-			version(Posix) write("\033[1;31m");
+			auto currentFg = foreground;
+
+			foreground = Color.red;
 			writefln(`FAIL "%s" (%s) after %.6f s: %s`, m_name, m_qualifiedName, fracSecs(timestamp), error.msg);
-			version(Posix) write("\033[0m");
+			foreground = currentFg;
+
 			m_failCount++;
 		} else {
 			writefln(`PASS "%s" (%s) after %.6f s`, m_name, m_qualifiedName, fracSecs(timestamp));
@@ -138,7 +143,102 @@ class ConsoleTestResultWriter : TestResultWriter {
 }
 
 /**
-	Outputs test results and instrumentation values 
+	Directly outputs unit test results to the console.
+*/
+class PrettyConsoleTestResultWriter : TestResultWriter {
+	enum CheckMark = "OK";
+
+	import std.stdio, std.demangle, std.string;
+	import consoled;
+
+	private {
+		size_t m_failCount, m_successCount;
+		string m_name, m_qualifiedName, m_moduleName;
+		Throwable[] m_errors;
+	}
+
+	void finalize()
+	{
+		auto currentFg = foreground;
+
+		foreach(index, error; m_errors) {
+			write("\n\n");
+			string strError = error.toString();
+			auto pos = strError.indexOf('\n');
+
+			foreground = Color.red;
+			writef("%s) %s", index + 1, strError[0..pos]);
+			foreground = currentFg;
+
+			write(strError[pos..$]);
+		}
+
+		foreground = Color.red;
+		writefln("\n\n  %s passing", m_successCount);
+
+		if(m_failCount > 0) {
+			foreground = Color.green;
+			writefln("  %s failing", m_failCount);
+		}
+
+		foreground = currentFg;
+		writeln;
+	}
+
+	void beginTest(string name, string qualified_name)
+	{
+		m_name = name;
+		m_qualifiedName = qualified_name;
+
+		auto moduleName = getModuleName(m_qualifiedName);
+
+		if(moduleName != m_moduleName) {
+			writeln;
+			writeln(moduleName);
+			m_moduleName = moduleName;
+		}
+	}
+
+	void addScalar(Duration timestamp, string name, double value)
+	{
+	}
+
+	void endTest(Duration timestamp, Throwable error)
+	{
+		auto currentFg = foreground;
+
+		if (error) {
+			m_failCount++;
+
+			foreground = Color.red;
+			writef("  %s) ", m_failCount);
+			foreground = currentFg;
+			writefln(`%s (%.6f s)`, m_name, fracSecs(timestamp));
+			m_errors ~= error;
+		} else {
+			foreground = Color.green;
+			write("  ", CheckMark, " ");
+			foreground = currentFg;
+			writefln(`%s (%.6f s)`, m_name, fracSecs(timestamp));
+			m_successCount++;
+		}
+	}
+
+	static double fracSecs(Duration dur)
+	{
+		return 1E-6 * dur.total!"usecs";
+	}
+
+	static string getModuleName(string name) {
+		auto demangled = name.demangle;
+		auto pos = demangled.lastIndexOf('.');
+
+		return demangled[0..pos];
+	}
+}
+
+/**
+	Outputs test results and instrumentation values
 */
 class JsonTestResultWriter : TestResultWriter {
 	import std.stdio;
@@ -301,7 +401,7 @@ private class TestRunner {
 			writeInstrumentStats(m_results, duration, m_baseStats, stats);
 			m_running = false;
 		}
-			
+
 		m_results.endTest(duration, error);
 		return error is null;
 	}

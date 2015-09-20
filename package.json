@@ -4,5 +4,9 @@
 	"copyright": "Copyright © 2013, rejectedsoftware e.K.",
 	"license": "MIT",
 	"authors": ["Sönke Ludwig"],
-	"targetType": "library"
+	"targetType": "library",
+
+	"dependencies": {
+		"consoled": "~>1.0.0"
+	}
 }
