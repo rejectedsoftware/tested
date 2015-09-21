@@ -177,11 +177,11 @@ class PrettyConsoleTestResultWriter : TestResultWriter {
 			write(strError[pos..$]);
 		}
 
-		foreground = Color.red;
+		foreground = Color.green;
 		writefln("\n\n  %s passing", m_successCount);
 
 		if(m_failCount > 0) {
-			foreground = Color.green;
+			foreground = Color.red;
 			writefln("  %s failing", m_failCount);
 		}
 
