@@ -146,7 +146,11 @@ class ConsoleTestResultWriter : TestResultWriter {
 	Directly outputs unit test results to the console.
 */
 class PrettyConsoleTestResultWriter : TestResultWriter {
-	enum CheckMark = "OK";
+	version(Windows) {
+		enum CheckMark = "OK";
+	} else {
+		enum CheckMark = "✓";
+	}
 
 	import std.stdio, std.demangle, std.string;
 	import consoled;
