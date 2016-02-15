@@ -214,9 +214,10 @@ private class TestRunner {
 		//instrumentthr.priority = Thread.PRIORITY_DEFAULT + 1;
 		instrumentthr.start();
 
+		bool[string] visitedMembers;
 		auto ret = true;
 		foreach(comp; COMPOSITES)
-			if (!runUnitTestsImpl!comp())
+			if (!runUnitTestsImpl!comp(visitedMembers))
 				ret = false;
 		m_results.finalize();
 
@@ -233,7 +234,7 @@ private class TestRunner {
 		synchronized (m_mutex) m_results.addScalar(ts, name, value);
 	}
 
-	private bool runUnitTestsImpl(COMPOSITE...)()
+	private bool runUnitTestsImpl(COMPOSITE...)(ref bool[string] visitedMembers)
 		if (COMPOSITE.length == 1 && isUnitTestContainer!COMPOSITE)
 	{
 		bool ret = true;
@@ -243,7 +244,6 @@ private class TestRunner {
 			if (!runUnitTest!test())
 				ret = false;
 		}
-
 		// if COMPOSITE has members, descent recursively
 		static if (isUnitTestContainer!COMPOSITE) {
 			foreach (M; __traits(allMembers, COMPOSITE)) {
@@ -254,8 +254,15 @@ private class TestRunner {
 					!isModule!(__traits(getMember, COMPOSITE, M))
 					)
 				{
-					if (!runUnitTestsImpl!(__traits(getMember, COMPOSITE, M))())
-						ret = false;
+					// Don't visit the same member again.
+					// This can be checked at compile time, but it's easier and much much
+					// faster at runtime.
+					if (__traits(getMember, COMPOSITE, M).mangleof !in visitedMembers)
+					{ 
+						visitedMembers[__traits(getMember, COMPOSITE, M).mangleof] = true;
+						if (!runUnitTestsImpl!(__traits(getMember, COMPOSITE,	M))(visitedMembers))
+							ret = false;
+					}
 				}
 			}
 		}
@@ -423,6 +430,7 @@ private template isSingleField(DECL...)
 {
 	enum isSingleField = DECL.length == 1;
 }
+
 
 static assert(!is(tested));
 static assert(isModule!tested);

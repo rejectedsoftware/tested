@@ -64,3 +64,15 @@ unittest {
 		assert(ints.length < 900, "Too many items");
 	}
 }
+
+struct Recursion{
+    alias Self = Recursion;
+    struct Child{
+        alias Parent = Recursion;
+    }
+
+    @name("recursion must be terminated")
+    unittest{
+        assert(true);
+    }
+}
