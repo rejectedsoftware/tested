@@ -122,8 +122,13 @@ class ConsoleTestResultWriter : TestResultWriter {
 	{
 		if (error) {
 			version(Posix) write("\033[1;31m");
+			version(Windows) if (isAtLeastWindows10()) write("\033[1;31m");
+
 			writefln(`FAIL "%s" (%s) after %.6f s: %s`, m_name, m_qualifiedName, fracSecs(timestamp), error.msg);
+
 			version(Posix) write("\033[0m");
+			version(Windows) if (isAtLeastWindows10()) write("\033[0m");
+
 			m_failCount++;
 		} else {
 			writefln(`PASS "%s" (%s) after %.6f s`, m_name, m_qualifiedName, fracSecs(timestamp));
@@ -449,5 +454,31 @@ private void testTempl(X...)()
 		auto x = X[0].init;
 	} else {
 		auto x = X[0].stringof;
+	}
+}
+
+version(Windows)
+{
+	private bool isAtLeastWindows10()
+	{
+		import std.windows.registry;
+
+		static bool hasCachedValue = false;
+		static bool cachedReturnValue;
+		if (hasCachedValue) return cachedReturnValue;
+
+		scope(failure) {
+			cachedReturnValue = false;
+			hasCachedValue = true;
+			return false;
+		}
+
+		auto majorVersion = Registry.localMachine()
+				.getKey(`SOFTWARE\Microsoft\Windows NT\CurrentVersion`)
+				.getValue("CurrentMajorVersionNumber");
+
+		cachedReturnValue = (majorVersion.value_DWORD() >= 10);
+		hasCachedValue = true;
+		return cachedReturnValue;
 	}
 }
