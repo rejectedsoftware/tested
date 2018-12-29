@@ -15,6 +15,7 @@ import std.datetime : StopWatch;
 import std.string : startsWith;
 import std.traits;
 import std.typetuple : TypeTuple;
+import std.conv;
 
 
 /**
@@ -122,7 +123,7 @@ class ConsoleTestResultWriter : TestResultWriter {
 	{
 		if (error) {
 			version(Posix) write("\033[1;31m");
-			writefln(`FAIL "%s" (%s) after %.6f s: %s`, m_name, m_qualifiedName, fracSecs(timestamp), error.msg);
+			writefln(`FAIL "%s" (%s) after %.6f s: %s`, m_name, m_qualifiedName, fracSecs(timestamp), error.msg ~ "\n" ~ to!string(error.info));
 			version(Posix) write("\033[0m");
 			m_failCount++;
 		} else {
@@ -180,7 +181,7 @@ class JsonTestResultWriter : TestResultWriter {
 	void endTest(Duration timestamp, Throwable error)
 	{
 		m_file.writef(`], "success": %s, "duration": %s`, error is null, timestamp.total!"usecs" * 1E-6);
-		if (error) m_file.writef(`, "message": "%s"`, error.msg);
+		if (error) m_file.writef(`, "message": "%s"`, error.msg ~ "\n" ~ to!string(error.info));
 		m_file.write("}");
 	}
 }
