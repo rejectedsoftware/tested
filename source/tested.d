@@ -11,7 +11,7 @@ import core.sync.mutex;
 import core.memory;
 import core.time;
 import core.thread;
-import std.datetime : StopWatch;
+import std.datetime.stopwatch : StopWatch;
 import std.string : startsWith;
 import std.traits;
 import std.typetuple : TypeTuple;
